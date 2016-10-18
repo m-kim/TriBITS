@@ -1044,6 +1044,17 @@ NOTE: If the project has ``USE_XSDK_DEFAULTS=ON`` set, then this will set
 ``BUILD_SHARED_LIBS=TRUE`` by default.  Otherwise, the default is
 ``BUILD_SHARED_LIBS=FALSE``
 
+Many systems support a feature called ``RPATH`` when shared libraries are used
+that embeds the default locations to look for shared libraries when an
+executables is run.  By default on most systems, CMake will add RPATH
+directories to shared libraries and executables inside of the build directory.
+This allows running CMake-built executables from inside the build directory
+without needing to set ``LD_LIBRARY_PATH`` on any other environment variables.
+However, this can be disabled by setting::
+
+  -D CMAKE_SKIP_BUILD_RPATH=TRUE
+
+but it is hard to find a use case where that would be useful.
 
 Building static libraries and executables
 -----------------------------------------
@@ -2256,6 +2267,9 @@ shortest build directory you can, like::
 This has been shown to allow even the most complex TriBITS-based CMake
 projects to successfully install and avoid this error.
 
+NOTE: This problem has been resolved in CMake versions 3.6.0+ and does not
+require a short build directory path.
+
 
 Setting the install prefix at configure time
 --------------------------------------------
@@ -2294,6 +2308,108 @@ WARNING: To overwrite default relative paths, you must use the data type
 current binary directory for the base path.  Otherwise, if you want to specify
 absolute paths, use the data type ``PATH`` as shown above.
 
+Setting install RPATH
+---------------------
+
+Setting RPATH for installed shared libraries (i.e. ``BUILD_SHARED_LIBS=TRUE``)
+and exectuables can be a little tricky.  This behavior for raw CMake can be a
+little bit confusing and may not be consistent between Unix and OSX systems
+(depending on the version of CMake being used).  Some discussion of how raw
+CMake handles RPATH and installations can be found at:
+
+  https://cmake.org/Wiki/CMake_RPATH_handling
+
+The TriBITS/CMake build system being used for this <Project> CMake project
+defines the following default behavior for installed RPATH:
+
+* The install path ``CMAKE_INSTALL_PATH`` for all libraries built and
+  installed by this CMake project is set to ``${<Project>_INSTALL_LIB_DIR}``.
+  (This default is controlled by the variable
+  `<Project>_SET_INSTALL_RPATH`_.)
+
+* The path for all shared external libraries (i.e. TPLS) is set to the
+  location of the libraries used in the build tree. (This is controlled by the
+  variable ``CMAKE_INSTALL_RPATH_USE_LINK_PATH``.)
+
+The above default behavior allows the installed exectuables and libraries to
+run without needing to set ``LD_LIBRARY_PATH`` or any other system variables.
+However, this setting does not allow the installed libraries and executables
+to be moved or relocated easily.  There are several CMake variables that
+control how RPATH is handled related to installations.  The build-in CMake
+variables that control RPATH handling include ``CMAKE_INSTALL_RPATH``,
+``CMAKE_SKIP_BUILD_RPATH``, ``CMAKE_SKIP_INSTALL_RPATH``,
+``CMAKE_SKIP_RPATH``, ``CMAKE_BUILD_WITH_INSTALL_RPATH``,
+``CMAKE_INSTALL_RPATH_USE_LINK_PATH``.
+
+In addition, this TriBITS/CMake project defines the variable:
+
+.. _<Project>_SET_INSTALL_RPATH:
+
+* **<Project>_SET_INSTALL_RPATH**: If ``TRUE``, then the global CMake variable
+  ``CMAKE_INSTALL_RPATH`` is set to ``<Project>_INSTALL_LIB_DIR``.  If
+  ``CMAKE_INSTALL_RPATH`` is set by the user, then that is used instead.
+
+Rather than re-documenting all of native CMake RPATH variables, instead, we
+described how these variables should be set for different installation and
+distribution scenarios below.
+
+0. *Use default CMake behavior:* If one just wants the default raw CMake
+   behavior with respect to RPATH, then configure with::
+
+     -D<Project>_SET_INSTALL_RPATH=FALSE \
+     -DCMAKE_INSTALL_RPATH_USE_LINK_PATH=false \
+
+1. *Libraries and executables are built and installed on one machine and then
+   used from that install location:* This is the default behavior of the
+   TriBITS CMake project.  To make that policy explicit, set::
+
+     -D<Project>_SET_INSTALL_RPATH=TRUE \
+     -DCMAKE_INSTALL_RPATH_USE_LINK_PATH=TRUE \
+
+2. *Libraries and executables built and installed on one machine will be moved
+   to different location on an otherwise identical machine*: In this scenario,
+   the final location of built libraries and executables will be the is
+   different but all of the external library references and directories would
+   be the same.  In this case, one would generally configure with::
+
+     -D<Project>_SET_INSTALL_RPATH=FALSE \
+     -DCMAKE_INSTALL_RPATH_USE_LINK_PATH=TRUE \
+
+   ToDo: Describe exact behavior on Linux and Mac OSX.
+
+3. *Libraries and executables built and installed on one machine will be moved
+   into a different location on another machine with a different directory
+   structure*: In this scenario, the final location of libraries and
+   executables will not be the same as the install location and the external
+   library locations may not be the same.  In this case, if one knows the
+   final target machine structure, that can be set as shown below by setting
+   ``CMAKE_INSTALL_RPATH="<path0>;<path1>;..."``.  However, if one does not
+   know the final machine directory structure (or the same distribution needs
+   to support several), then one can set ``CMAKE_SKIP_INSTALL_RPATH=TRUE`` as
+   described below.
+
+4. *Explicitly set RPATH for the final target system:* If one knows the
+   directory structure of the final target machine when the installed
+   libraries and executables will be used, then one can set that at configure
+   time with::
+
+     -DCMAKE_INSTALL_RPATH_USE_LINK_PATH=FALSE \
+     -DCMAKE_INSTALL_RPATH="<path0>;<path1>;..." \
+
+   ToDo: Verify that CMAKE_INSTALL_RPATH overrides all these other options.
+
+5. *Define all shared library paths at runtime using environment variables:*
+   If one wants complete freedom to define the paths for the shared libraries
+   at runtime with ``LD_LIBRARY_PATH`` on Linux (and similar variables on
+   other platforms), then one can completely strip RPATH out of the installed
+   libraries and executables by configuring with::
+
+     -DCMAKE_SKIP_INSTALL_RPATH=TRUE \
+
+   ToDo: Verify this gives the right behavior.
+
+   Then the env must be set up to find the correct shared libraries in the
+   correct order at runtime.
 
 Avoiding installing libraries and headers
 -----------------------------------------
