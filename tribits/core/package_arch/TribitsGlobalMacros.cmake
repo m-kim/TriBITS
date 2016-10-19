@@ -773,6 +773,29 @@ MACRO(TRIBITS_SETUP_INSTALLATION_PATHS)
     "Location where assorted examples will be installed.  If given as a relative path, it will be relative to ${CMAKE_INSTALL_PREFIX}.  If given as an absolute path, it will used as such.  Default is 'example'"
     )
 
+  #
+  # D) Setup RPATH handling
+  #
+
+  PRINT_VAR(${PROJECT_NAME}_SET_INSTALL_RPATH)
+  PRINT_VAR(CMAKE_INSTALL_RPATH_USE_LINK_PATH)
+
+  IF (${PROJECT_NAME}_SET_INSTALL_RPATH
+    AND "${CMAKE_INSTALL_RPATH}" STREQUAL ""
+    )
+    MESSAGE("-- " "Setting CMAKE_INSTALL_RPATH based on ${PROJECT_NAME}_INSTALL_LIB_DIR")
+    ASSERT_DEFINED(CMAKE_INSTALL_PREFIX)
+    ASSERT_DEFINED(${PROJECT_NAME}_INSTALL_LIB_DIR)
+    IF (IS_ABSOLUTE ${${PROJECT_NAME}_INSTALL_LIB_DIR})
+      SET(CMAKE_INSTALL_RPATH
+        "${PROJECT_NAME}_INSTALL_LIB_DIR}" )
+    ELSE()
+      SET(CMAKE_INSTALL_RPATH
+        "${CMAKE_INSTALL_PREFIX}/${${PROJECT_NAME}_INSTALL_LIB_DIR}" )
+    ENDIF()
+  ENDIF()
+  PRINT_VAR(CMAKE_INSTALL_RPATH)
+
 ENDMACRO()
 
 
@@ -1626,6 +1649,9 @@ MACRO(TRIBITS_SETUP_ENV)
     # var getting set there.
   ENDIF()
 
+  # BUILD_SHARED_LIBS
+  PRINT_VAR(BUILD_SHARED_LIBS)
+
   # Set to release build by default
 
   IF ("${CMAKE_BUILD_TYPE}" STREQUAL "")
@@ -1641,28 +1667,6 @@ MACRO(TRIBITS_SETUP_ENV)
     ENDIF()
   ENDIF()
   PRINT_VAR(CMAKE_BUILD_TYPE)
-
-  # BUILD_SHARED_LIBS
-  PRINT_VAR(BUILD_SHARED_LIBS)
-
-  # RPATH handling
-
-  PRINT_VAR(${PROJECT_NAME}_SET_INSTALL_RPATH)
-  PRINT_VAR(CMAKE_INSTALL_RPATH_USE_LINK_PATH)
-
-  IF (${PROJECT_NAME}_SET_INSTALL_RPATH
-    AND "${CMAKE_INSTALL_RPATH}" STREQUAL ""
-    )
-    MESSAGE("-- " "Setting CMAKE_INSTALL_RPATH based on ${PROJECT_NAME}_INSTALL_LIB_DIR")
-    IF (IS_ABSOLUTE ${${PROJECT_NAME}_INSTALL_LIB_DIR})
-      SET(CMAKE_INSTALL_RPATH
-        "${PROJECT_NAME}_INSTALL_LIB_DIR}" )
-    ELSE()
-      SET(CMAKE_INSTALL_RPATH
-        "${CMAKE_INSTALL_PREFIX}/${${PROJECT_NAME}_INSTALL_LIB_DIR}" )
-    ENDIF()
-  ENDIF()
-  PRINT_VAR(CMAKE_INSTALL_RPATH)
 
   # Override the silly CMAKE_CONFIGURATION_TYPES variable.  This is needed for
   # MSVS!  Later, we Override CMAKE_CONFIGURATION_TYPES to just one
@@ -1720,6 +1724,12 @@ MACRO(TRIBITS_SETUP_ENV)
 
   INCLUDE(TribitsSetupBasicCompileLinkFlags)
   TRIBITS_SETUP_BASIC_COMPILE_LINK_FLAGS()
+
+  #
+  # The compilers are set, the environment is known to CMake.  Now set the
+  # installation paths and options.
+  #
+  TRIBITS_SETUP_INSTALLATION_PATHS()
 
   # Set up Windows interface stuff
 

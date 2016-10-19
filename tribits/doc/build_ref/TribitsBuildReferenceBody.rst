@@ -1046,11 +1046,11 @@ NOTE: If the project has ``USE_XSDK_DEFAULTS=ON`` set, then this will set
 
 Many systems support a feature called ``RPATH`` when shared libraries are used
 that embeds the default locations to look for shared libraries when an
-executables is run.  By default on most systems, CMake will add RPATH
-directories to shared libraries and executables inside of the build directory.
-This allows running CMake-built executables from inside the build directory
-without needing to set ``LD_LIBRARY_PATH`` on any other environment variables.
-However, this can be disabled by setting::
+executable is run.  By default on most systems, CMake will automatically add
+RPATH directories to shared libraries and executables inside of the build
+directories.  This allows running CMake-built executables from inside the
+build directory without needing to set ``LD_LIBRARY_PATH`` on any other
+environment variables.  However, this can be disabled by setting::
 
   -D CMAKE_SKIP_BUILD_RPATH=TRUE
 
@@ -2254,25 +2254,27 @@ Installing
 After a build and test of the software is complete, the software can be
 installed.  Actually, to get ready for the install, the install directory must
 be specified at configure time by setting the variable
-``CMAKE_INSTALL_PREFIX``.  The other commands described below can all be run
-after the build and testing is complete.
+``CMAKE_INSTALL_PREFIX`` in addition to other variables that affect the
+installation (see the following sections).  The other commands described below
+can all be run after the build and testing is complete.
 
-**WARNING:** When using shared libraries, one must be careful to avoid the
-error **"RegularExpression::compile(): Expression too big."** when using RPATH
-and when RPATH gets stripped out on install.  To avoid this error, use the
-shortest build directory you can, like::
+For the most typical case where the software is build and installed on the
+same machine in the same location where it will be used, one just needs to
+configure with::
 
-  $HOME/<Project>_BUILD/
+  $ cmake -DCMAKE_INSTALL_PREFIX=<install-base-dir> [other options] \
+    ${SOURCE_DIR}
+  $ make -j<N> install
 
-This has been shown to allow even the most complex TriBITS-based CMake
-projects to successfully install and avoid this error.
+For more details, see the following subsections:
 
-NOTE: This problem has been resolved in CMake versions 3.6.0+ and does not
-require a short build directory path.
+* `Setting the install prefix`_
+* `Setting install RPATH`_
+* `Avoiding installing libraries and headers`_
+* `Installing the software`_
 
-
-Setting the install prefix at configure time
---------------------------------------------
+Setting the install prefix
+--------------------------
 
 In order to set up for the install, the install prefix should be set up at
 configure time by setting, for example::
@@ -2293,10 +2295,10 @@ the paths can be absolute (use type ``PATH``) and don't have to be under
 ``${CMAKE_INSTALL_PREFIX}``.  For example, to install each part in any
 abritrary location use::
 
-  -D <Project>_INSTALL_INCLUDE_DIR="/usr/trilinos_include" \
-  -D <Project>_INSTALL_LIB_DIR="/usr/trilinos_lib" \
-  -D <Project>_INSTALL_RUNTIME_DIR="/usr/trilinos_bin" \
-  -D <Project>_INSTALL_EXAMPLE_DIR="/usr/share/trilinos/examples"
+  -D <Project>_INSTALL_INCLUDE_DIR="/usr/<Project>_include" \
+  -D <Project>_INSTALL_LIB_DIR="/usr/<Project>_lib" \
+  -D <Project>_INSTALL_RUNTIME_DIR="/usr/<Project>_bin" \
+  -D <Project>_INSTALL_EXAMPLE_DIR="/usr/share/<Project>/examples"
 
 NOTE: The defaults for the above include paths will be set by the standard
 CMake module ``GNUInstallDirs`` if ``<Project>_USE_GNUINSTALLDIRS=TRUE`` is
@@ -2311,16 +2313,17 @@ absolute paths, use the data type ``PATH`` as shown above.
 Setting install RPATH
 ---------------------
 
-Setting RPATH for installed shared libraries (i.e. ``BUILD_SHARED_LIBS=TRUE``)
-and exectuables can be a little tricky.  This behavior for raw CMake can be a
-little bit confusing and may not be consistent between Unix and OSX systems
-(depending on the version of CMake being used).  Some discussion of how raw
-CMake handles RPATH and installations can be found at:
+Setting RPATH for installed shared libraries and exectuables
+(i.e. ``BUILD_SHARED_LIBS=ON``) can be a little tricky.  The behavior for raw
+CMake can be a little bit confusing and may not be consistent between Unix and
+OSX systems depending on the version of CMake being used.  Some discussion of
+how raw CMake handles RPATH and installations can be found at:
 
   https://cmake.org/Wiki/CMake_RPATH_handling
 
 The TriBITS/CMake build system being used for this <Project> CMake project
-defines the following default behavior for installed RPATH:
+defines the following default behavior for installed RPATH (which is not the
+same as the raw CMake default behavior):
 
 * The install path ``CMAKE_INSTALL_PATH`` for all libraries built and
   installed by this CMake project is set to ``${<Project>_INSTALL_LIB_DIR}``.
@@ -2339,15 +2342,19 @@ control how RPATH is handled related to installations.  The build-in CMake
 variables that control RPATH handling include ``CMAKE_INSTALL_RPATH``,
 ``CMAKE_SKIP_BUILD_RPATH``, ``CMAKE_SKIP_INSTALL_RPATH``,
 ``CMAKE_SKIP_RPATH``, ``CMAKE_BUILD_WITH_INSTALL_RPATH``,
-``CMAKE_INSTALL_RPATH_USE_LINK_PATH``.
+``CMAKE_INSTALL_RPATH_USE_LINK_PATH``.  The TriBITS/CMake build for <Project>
+respects all of these raw CMake variables and their effect on the build and
+install.
 
 In addition, this TriBITS/CMake project defines the variable:
 
 .. _<Project>_SET_INSTALL_RPATH:
 
-* **<Project>_SET_INSTALL_RPATH**: If ``TRUE``, then the global CMake variable
+  **<Project>_SET_INSTALL_RPATH**: If ``TRUE``, then the global CMake variable
   ``CMAKE_INSTALL_RPATH`` is set to ``<Project>_INSTALL_LIB_DIR``.  If
-  ``CMAKE_INSTALL_RPATH`` is set by the user, then that is used instead.
+  ``CMAKE_INSTALL_RPATH`` is set by the user, then that is used instead.  This
+  avoids having to manually set ``CMAKE_INSTALL_RPATH`` to the correct install
+  directory.
 
 Rather than re-documenting all of native CMake RPATH variables, instead, we
 described how these variables should be set for different installation and
@@ -2357,11 +2364,11 @@ distribution scenarios below.
    behavior with respect to RPATH, then configure with::
 
      -D<Project>_SET_INSTALL_RPATH=FALSE \
-     -DCMAKE_INSTALL_RPATH_USE_LINK_PATH=false \
+     -DCMAKE_INSTALL_RPATH_USE_LINK_PATH=FALSE \
 
 1. *Libraries and executables are built and installed on one machine and then
-   used from that install location:* This is the default behavior of the
-   TriBITS CMake project.  To make that policy explicit, set::
+   used from that install location (TriBITS/CMake default):* One needs no
+   options for this behavior but to make this explicit then configure with::
 
      -D<Project>_SET_INSTALL_RPATH=TRUE \
      -DCMAKE_INSTALL_RPATH_USE_LINK_PATH=TRUE \
@@ -2440,21 +2447,26 @@ To install the software, type::
 
 Note that CMake actually puts in the build dependencies for installed targets
 so in some cases you can just type ``make -j<N> install`` and it will also
-build the software.  However, it is advised to always build and test the
-software first before installing with::
+build the software before installing.  However, it is advised to always build
+and test the software first before installing with::
 
   $ make -j<N> && ctest -j<N> && make -j<N> install
 
 This will ensure that everything is built correctly and all tests pass before
 installing.
 
-**NOTE:** If while installing you see errors stating
-"RegularExpression::compile(): Expression too big.", then try using a shorter
-build directory path like::
+**WARNING:** When using shared libraries, one must be careful to avoid the
+error **"RegularExpression::compile(): Expression too big."** when using RPATH
+and when RPATH gets stripped out on install.  To avoid this error, use the
+shortest build directory you can, like::
 
   $HOME/<Project>_BUILD/
 
-See the above warning for more details.
+This has been shown to allow even the most complex TriBITS-based CMake
+projects to successfully install and avoid this error.
+
+NOTE: This problem has been resolved in CMake versions 3.6.0+ and does not
+require a short build directory path.
 
 
 Packaging
