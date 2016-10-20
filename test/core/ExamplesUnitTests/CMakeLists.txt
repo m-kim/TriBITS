@@ -389,7 +389,7 @@ TRIBITS_ADD_ADVANCED_TEST( TribitsExampleProject_ALL_ST_NoFortran
       "WithSubpackagesB_test_of_b .* Passed"
       "WithSubpackagesC_test_of_c .* Passed"
       "WithSubpackagesC_test_of_c_util.* Passed"
-      "100% tests passed, 0 tests failed out of 5"
+      "100% tests passed, 0 tests failed out of 6"
 
   TEST_3
     MESSAGE "Create and configure a dummy project that includes WithSubpackagesConfig.cmake"
@@ -639,7 +639,7 @@ TRIBITS_ADD_ADVANCED_TEST( TribitsExampleProject_ALL_PT_NoFortran
     PASS_REGULAR_EXPRESSION_ALL
       "SimpleCxx_HelloWorldTests${TEST_MPI_1_SUFFIX} .* Passed"
       "WithSubpackagesA_test_of_a .* Passed"
-      "100% tests passed, 0 tests failed out of 2"
+      "100% tests passed, 0 tests failed out of 3"
 
   TEST_3 CMND make ARGS install ${CTEST_BUILD_FLAGS}
     MESSAGE "Build 'install' target using raw 'make'"
@@ -714,7 +714,7 @@ TRIBITS_ADD_ADVANCED_TEST( TribitsExampleProject_ALL_ST
       "WithSubpackagesC_test_of_c_util.* Passed" 
       "WithSubpackagesC_test_of_c .* Passed"
       "WithSubpackagesC_test_of_c_b_mixed_lang.* Passed"
-      "100% tests passed, 0 tests failed out of 8"
+      "100% tests passed, 0 tests failed out of 9"
   )
 
 
@@ -769,7 +769,7 @@ TRIBITS_ADD_ADVANCED_TEST( TribitsExampleProject_ALL_ST_LibPrefix
       "WithSubpackagesC_test_of_c_util.* Passed" 
       "WithSubpackagesC_test_of_c .* Passed"
       "WithSubpackagesC_test_of_c_b_mixed_lang.* Passed"
-      "100% tests passed, 0 tests failed out of 8"
+      "100% tests passed, 0 tests failed out of 9"
   )
 
 
@@ -1148,7 +1148,7 @@ TRIBITS_ADD_ADVANCED_TEST( TribitsExampleProject_SimpleCxx_DEBUG_int64
     MESSAGE "Run all the tests with raw 'ctest'"
     PASS_REGULAR_EXPRESSION_ALL
       "SimpleCxx_HelloWorldTests${TEST_MPI_1_SUFFIX} .* Passed"
-      "100% tests passed, 0 tests failed out of 1"
+      "100% tests passed, 0 tests failed out of 2"
   )
 
 
@@ -1464,7 +1464,7 @@ TRIBITS_ADD_ADVANCED_TEST( TribitsExampleProject_ALL_NoFortran_OverridePackageSo
 
   TEST_5 CMND ${CMAKE_CTEST_COMMAND}
     PASS_REGULAR_EXPRESSION_ALL
-      "100% tests passed, 0 tests failed out of 6"
+      "100% tests passed, 0 tests failed out of 7"
 
   )
 
@@ -1756,7 +1756,7 @@ TRIBITS_ADD_ADVANCED_TEST( TribitsExampleProject_MixedSharedStaticLibs_shared
     PASS_REGULAR_EXPRESSION_ALL
       "MixedSharedStaticLibsSharedOnly_test.* Passed"
       "MixedSharedStaticLibsStaticExec_test.* Passed"
-      "100% tests passed, 0 tests failed out of 3"
+      "100% tests passed, 0 tests failed out of 4"
 
   )
   # NOTE: The above test make sure that you can build a static library with
@@ -1824,7 +1824,7 @@ TRIBITS_ADD_ADVANCED_TEST( TribitsExampleProject_MixedSharedStaticLibs_static
     PASS_REGULAR_EXPRESSION_ALL
       "MixedSharedStaticLibsSharedOnly_test.* Passed"
       "MixedSharedStaticLibsStaticExec_test.* Passed"
-      "100% tests passed, 0 tests failed out of 3"
+      "100% tests passed, 0 tests failed out of 4"
 
   )
   # NOTE: The above test make sure that you can build a shared library with
