@@ -1870,7 +1870,6 @@ TRIBITS_ADD_ADVANCED_TEST( TribitsExampleProject_DisableWithSubpackagesB_EnableW
 
 SET(SimpleTpl_install_shared_DIR
   ${CMAKE_CURRENT_BINARY_DIR}/${PACKAGE_NAME}_SimpleTpl_install_shared)
-
 TRIBITS_ADD_ADVANCED_TEST( SimpleTpl_install_shared
   OVERALL_WORKING_DIRECTORY TEST_NAME
   OVERALL_NUM_MPI_PROCS 1
@@ -1893,12 +1892,24 @@ TRIBITS_ADD_ADVANCED_TEST( SimpleTpl_install_shared
       "Installing: ${SimpleTpl_install_shared_DIR}/install/lib/libsimpletpl.so"
       "Installing: ${SimpleTpl_install_shared_DIR}/install/include/SimpleTpl.hpp"
 
-    ADDED_TEST_NAME_OUT SimpleTpl_install_shared_Name
+    ADDED_TEST_NAME_OUT SimpleTpl_install_shared_NAME
 
   )
 
 
-SET(TribitsExampleProject_SimpleTpl_RPATH_default_DIR
+SET(TEST_RPATH_COMMON_CONFIG_ARGS
+  ${TribitsExampleProject_COMMON_CONFIG_ARGS}
+  -DTribitsExProj_TRIBITS_DIR=${${PROJECT_NAME}_TRIBITS_DIR}
+  -DTribitsExProj_ENABLE_Fortran=OFF
+  -DTribitsExProj_ENABLE_SimpleCxx=ON
+  -DTribitsExProj_ENABLE_TESTS=ON
+  -DTPL_ENABLE_SimpleTpl=ON
+  -DSimpleTpl_INCLUDE_DIRS=${SimpleTpl_install_shared_DIR}/install/include
+  -DSimpleTpl_LIBRARY_DIRS=${SimpleTpl_install_shared_DIR}/install/lib
+  )  
+
+
+SET(RPATH_CURRENT_TEST_DIR
   ${CMAKE_CURRENT_BINARY_DIR}/${PACKAGE_NAME}_TribitsExampleProject_SimpleTpl_RPATH_default)
 
 TRIBITS_ADD_ADVANCED_TEST( TribitsExampleProject_SimpleTpl_RPATH_default
@@ -1908,15 +1919,8 @@ TRIBITS_ADD_ADVANCED_TEST( TribitsExampleProject_SimpleTpl_RPATH_default
   TEST_0 CMND ${CMAKE_COMMAND}
     MESSAGE "Do default configure for auto RPATH to install dir"
     ARGS
-      ${TribitsExampleProject_COMMON_CONFIG_ARGS}
-      -DTribitsExProj_TRIBITS_DIR=${${PROJECT_NAME}_TRIBITS_DIR}
-      -DTribitsExProj_ENABLE_Fortran=OFF
-      -DTribitsExProj_ENABLE_SimpleCxx=ON
-      -DTribitsExProj_ENABLE_TESTS=ON
-      -DCMAKE_INSTALL_PREFIX=${TribitsExampleProject_SimpleTpl_RPATH_default_DIR}/install
-      -DTPL_ENABLE_SimpleTpl=ON
-      -DSimpleTpl_INCLUDE_DIRS=${SimpleTpl_install_shared_DIR}/install/include
-      -DSimpleTpl_LIBRARY_DIRS=${SimpleTpl_install_shared_DIR}/install/lib
+      ${TEST_RPATH_COMMON_CONFIG_ARGS}
+      -DCMAKE_INSTALL_PREFIX=${RPATH_CURRENT_TEST_DIR}/install
       ${${PROJECT_NAME}_TRIBITS_DIR}/examples/TribitsExampleProject
     PASS_REGULAR_EXPRESSION_ALL
       "Processing enabled package: SimpleCxx .Libs, Tests, Examples."
@@ -1939,28 +1943,80 @@ TRIBITS_ADD_ADVANCED_TEST( TribitsExampleProject_SimpleTpl_RPATH_default
 
   TEST_3 CMND make ARGS ${CTEST_BUILD_FLAGS} install
     PASS_REGULAR_EXPRESSION_ALL
-      "-- Set runtime path of .${TribitsExampleProject_SimpleTpl_RPATH_default_DIR}/install/bin/simplecxx-helloworld. to .${TribitsExampleProject_SimpleTpl_RPATH_default_DIR}/install/lib:${SimpleTpl_install_shared_DIR}/install/lib."
+      "-- Set runtime path of .${RPATH_CURRENT_TEST_DIR}/install/bin/simplecxx-helloworld. to .${RPATH_CURRENT_TEST_DIR}/install/lib:${SimpleTpl_install_shared_DIR}/install/lib."
     # NOTE: This above regex is very exact.  It makes sure these two
     # directories are there in exactly this order.
 
   TEST_4
-    MESSAGE "Run installed executable without hvaing to set env"
-    CMND ${TribitsExampleProject_SimpleTpl_RPATH_default_DIR}/install/bin/simplecxx-helloworld
+    MESSAGE "Run installed executable without having to set env"
+    CMND ${RPATH_CURRENT_TEST_DIR}/install/bin/simplecxx-helloworld
     PASS_REGULAR_EXPRESSION_ALL
       "Hello World"
       "Cube.3. = 27"  # This comes from the SimpleTpl TPL
 
-    ADDED_TEST_NAME_OUT TribitsExampleProject_SimpleTpl_RPATH_default_NAME
-
+  ADDED_TEST_NAME_OUT RPATH_CURRENT_TEST_NAME_NAME
   )
-IF (SimpleTpl_install_shared_Name)
-  SET_TESTS_PROPERTIES(${TribitsExampleProject_SimpleTpl_RPATH_default_NAME}
-    PROPERTIES DEPENDS ${SimpleTpl_install_shared_Name} )
+IF (RPATH_CURRENT_TEST_NAME_NAME)
+  SET_TESTS_PROPERTIES(${RPATH_CURRENT_TEST_NAME_NAME}
+    PROPERTIES DEPENDS ${SimpleTpl_install_shared_NAME} )
 ENDIF()
 
-# NOTE: That above test does some more detailed checking for this first test
+
+# NOTE: The above test does some more detailed checking for this first test
 # case.  Future test cases will not do as much checking but only change what
 # is changing.
+
+
+SET(RPATH_CURRENT_TEST_DIR
+  ${CMAKE_CURRENT_BINARY_DIR}/${PACKAGE_NAME}_TribitsExampleProject_SimpleTpl_RPATH_no_SET_INSTALL_RPATH)
+
+TRIBITS_ADD_ADVANCED_TEST( TribitsExampleProject_SimpleTpl_RPATH_no_SET_INSTALL_RPATH
+  OVERALL_WORKING_DIRECTORY TEST_NAME
+  OVERALL_NUM_MPI_PROCS 1
+
+  TEST_0 CMND ${CMAKE_COMMAND}
+    MESSAGE "Do configure with -DTribitsExProj_SET_INSTALL_RPATH=OFF"
+    ARGS
+      ${TEST_RPATH_COMMON_CONFIG_ARGS}
+      -DTribitsExProj_SET_INSTALL_RPATH=OFF
+      -DCMAKE_INSTALL_PREFIX=${RPATH_CURRENT_TEST_DIR}/install
+      ${${PROJECT_NAME}_TRIBITS_DIR}/examples/TribitsExampleProject
+
+  TEST_1 CMND make ARGS ${CTEST_BUILD_FLAGS} install
+    PASS_REGULAR_EXPRESSION_ALL
+      "-- Set runtime path of .${RPATH_CURRENT_TEST_DIR}/install/bin/simplecxx-helloworld. to .${SimpleTpl_install_shared_DIR}/install/lib."
+    # NOTE: This above regex is very exact.  It makes sure these two
+    # directories are there in exactly this order.
+
+  TEST_2 CMND ${CMAKE_CTEST_COMMAND} ARGS -VV
+    PASS_REGULAR_EXPRESSION_ALL
+      "100% tests passed, 0 tests failed out of 2"
+
+#  TEST_3
+#    MESSAGE "Run installed executable which should fail"
+#    CMND ${RPATH_CURRENT_TEST_DIR}/install/bin/simplecxx-helloworld
+#    WILL_FAIL   # NOTE: This argument is not supported yet!
+
+   # NOTE: By some magic on my machine crf450, the linker or CMake (can't tell
+   # which) is putting in the directory for the shared lib libsimplecxx.so
+   # into the RPATH automatically even through CMake install output shows that
+   # it is only setting the RPATH to libsimpltpl.so.   When I ran:
+   # 
+   #    objdump -x <path>/install/bin/simplecxx-helloworld
+   #
+   # it shows the paths to both libsimplecxx.so and the libsimpletpl.so.  How
+   # is that possible? That might explain why RPATH seems to work magically on
+   # most Linux machines.
+
+  ADDED_TEST_NAME_OUT RPATH_CURRENT_TEST_NAME_NAME
+  )
+IF (RPATH_CURRENT_TEST_NAME_NAME)
+  SET_TESTS_PROPERTIES(${TribitsExampleProject_SimpleTpl_RPATH_no_SET_INSTALL_RPATH_NAME}
+    PROPERTIES DEPENDS ${SimpleTpl_install_shared_NAME} )
+ENDIF()
+
+#ToDo: Add follow up test to make sure that you can set env and run the test
+
 
 
 ########################################################################
