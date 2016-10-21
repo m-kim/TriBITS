@@ -42,6 +42,11 @@
 # Common arguments
 #
 
+SET(SERIAL_PASSTHROUGH_CONFIGURE_ARGS
+  -DCMAKE_C_COMPILER=${CMAKE_C_COMPILER}
+  -DCMAKE_CXX_COMPILER=${CMAKE_CXX_COMPILER}
+  -DCMAKE_Fortran_COMPILER=${CMAKE_Fortran_COMPILER}
+  )
 
 SET(COMMON_ENV_ARGS_PASSTHROUGH
   -DTPL_ENABLE_MPI=${TPL_ENABLE_MPI}
@@ -63,9 +68,7 @@ IF (TPL_ENABLE_MPI)
   SET(TEST_MPI_1_SUFFIX "_MPI_1")
 ELSE()
   APPEND_SET(COMMON_ENV_ARGS_PASSTHROUGH
-    -DCMAKE_C_COMPILER=${CMAKE_C_COMPILER}
-    -DCMAKE_CXX_COMPILER=${CMAKE_CXX_COMPILER}
-    -DCMAKE_Fortran_COMPILER=${CMAKE_Fortran_COMPILER}
+    ${SERIAL_PASSTHROUGH_CONFIGURE_ARGS}
     )
   SET(TEST_MPI_1_SUFFIX "")
 ENDIF()
@@ -81,7 +84,7 @@ TRIBITS_ADD_ADVANCED_TEST( RawHelloWorld
   OVERALL_NUM_MPI_PROCS 1
   TEST_0 CMND ${CMAKE_COMMAND}
     ARGS
-      ${COMMON_ENV_ARGS_PASSTHROUGH}
+      ${SERIAL_PASSTHROUGH_CONFIGURE_ARGS}
       ${${PROJECT_NAME}_TRIBITS_DIR}/examples/RawHelloWorld
     PASS_REGULAR_EXPRESSION_ALL
       "Configuring done"
@@ -1858,6 +1861,106 @@ TRIBITS_ADD_ADVANCED_TEST( TribitsExampleProject_DisableWithSubpackagesB_EnableW
   )
 # NOTE: The above test is the *only* test that we have that checks that a
 # parent package is re-enabled if any of its subpackages are enabled!
+
+
+#
+# RPATH handling
+#
+
+
+SET(SimpleTpl_install_shared_DIR
+  ${CMAKE_CURRENT_BINARY_DIR}/${PACKAGE_NAME}_SimpleTpl_install_shared)
+
+TRIBITS_ADD_ADVANCED_TEST( SimpleTpl_install_shared
+  OVERALL_WORKING_DIRECTORY TEST_NAME
+  OVERALL_NUM_MPI_PROCS 1
+
+  TEST_0
+    CMND ${CMAKE_COMMAND}
+    ARGS
+      ${SERIAL_PASSTHROUGH_CONFIGURE_ARGS}
+      -DBUILD_SHARED_LIBS=ON
+      -DCMAKE_INSTALL_PREFIX=${SimpleTpl_install_shared_DIR}/install
+      ${${PROJECT_NAME}_TRIBITS_DIR}/examples/tpls/SimpleTpl
+    PASS_REGULAR_EXPRESSION_ALL
+      "Configuring done"
+      "Generating done"
+
+  TEST_1 CMND make
+    ARGS ${CTEST_BUILD_FLAGS} install
+    PASS_REGULAR_EXPRESSION_ALL
+      "Built target simpletpl"
+      "Installing: ${SimpleTpl_install_shared_DIR}/install/lib/libsimpletpl.so"
+      "Installing: ${SimpleTpl_install_shared_DIR}/install/include/SimpleTpl.hpp"
+
+    ADDED_TEST_NAME_OUT SimpleTpl_install_shared_Name
+
+  )
+
+
+SET(TribitsExampleProject_SimpleTpl_RPATH_default_DIR
+  ${CMAKE_CURRENT_BINARY_DIR}/${PACKAGE_NAME}_TribitsExampleProject_SimpleTpl_RPATH_default)
+
+TRIBITS_ADD_ADVANCED_TEST( TribitsExampleProject_SimpleTpl_RPATH_default
+  OVERALL_WORKING_DIRECTORY TEST_NAME
+  OVERALL_NUM_MPI_PROCS 1
+
+  TEST_0 CMND ${CMAKE_COMMAND}
+    MESSAGE "Do default configure for auto RPATH to install dir"
+    ARGS
+      ${TribitsExampleProject_COMMON_CONFIG_ARGS}
+      -DTribitsExProj_TRIBITS_DIR=${${PROJECT_NAME}_TRIBITS_DIR}
+      -DTribitsExProj_ENABLE_Fortran=OFF
+      -DTribitsExProj_ENABLE_SimpleCxx=ON
+      -DTribitsExProj_ENABLE_TESTS=ON
+      -DCMAKE_INSTALL_PREFIX=${TribitsExampleProject_SimpleTpl_RPATH_default_DIR}/install
+      -DTPL_ENABLE_SimpleTpl=ON
+      -DSimpleTpl_INCLUDE_DIRS=${SimpleTpl_install_shared_DIR}/install/include
+      -DSimpleTpl_LIBRARY_DIRS=${SimpleTpl_install_shared_DIR}/install/lib
+      ${${PROJECT_NAME}_TRIBITS_DIR}/examples/TribitsExampleProject
+    PASS_REGULAR_EXPRESSION_ALL
+      "Processing enabled package: SimpleCxx .Libs, Tests, Examples."
+      "Configuring done"
+      "Generating done"
+
+  TEST_1 CMND make ARGS ${CTEST_BUILD_FLAGS}
+    MESSAGE "Build the default 'all' target using raw 'make'"
+    PASS_REGULAR_EXPRESSION_ALL
+      "Built target simplecxx"
+      "Built target simplecxx-helloworld"
+      "Built target SimpleCxx_HelloWorldTests"
+
+  TEST_2 CMND ${CMAKE_CTEST_COMMAND} ARGS -VV
+    MESSAGE "Run all the tests with raw 'ctest'"
+    PASS_REGULAR_EXPRESSION_ALL
+      "SimpleCxx_HelloWorldTests${TEST_MPI_1_SUFFIX} .* Passed"
+      "SimpleCxx_HelloWorldProg${TEST_MPI_1_SUFFIX} .* Passed"
+      "100% tests passed, 0 tests failed out of 2"
+
+  TEST_3 CMND make ARGS ${CTEST_BUILD_FLAGS} install
+    PASS_REGULAR_EXPRESSION_ALL
+      "-- Set runtime path of .${TribitsExampleProject_SimpleTpl_RPATH_default_DIR}/install/bin/simplecxx-helloworld. to .${TribitsExampleProject_SimpleTpl_RPATH_default_DIR}/install/lib:${SimpleTpl_install_shared_DIR}/install/lib."
+    # NOTE: This above regex is very exact.  It makes sure these two
+    # directories are there in exactly this order.
+
+  TEST_4
+    MESSAGE "Run installed executable without hvaing to set env"
+    CMND ${TribitsExampleProject_SimpleTpl_RPATH_default_DIR}/install/bin/simplecxx-helloworld
+    PASS_REGULAR_EXPRESSION_ALL
+      "Hello World"
+      "Cube.3. = 27"  # This comes from the SimpleTpl TPL
+
+    ADDED_TEST_NAME_OUT TribitsExampleProject_SimpleTpl_RPATH_default_NAME
+
+  )
+IF (SimpleTpl_install_shared_Name)
+  SET_TESTS_PROPERTIES(${TribitsExampleProject_SimpleTpl_RPATH_default_NAME}
+    PROPERTIES DEPENDS ${SimpleTpl_install_shared_Name} )
+ENDIF()
+
+# NOTE: That above test does some more detailed checking for this first test
+# case.  Future test cases will not do as much checking but only change what
+# is changing.
 
 
 ########################################################################
