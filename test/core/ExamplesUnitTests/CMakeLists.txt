@@ -1897,6 +1897,8 @@ TRIBITS_ADD_ADVANCED_TEST( SimpleTpl_install_shared
   )
 
 
+# Common configure arugments for all fo the
+# TribitsExampleProject_SimpleTpl_RPATH_XXX tests.
 SET(TEST_RPATH_COMMON_CONFIG_ARGS
   ${TribitsExampleProject_COMMON_CONFIG_ARGS}
   -DTribitsExProj_TRIBITS_DIR=${${PROJECT_NAME}_TRIBITS_DIR}
@@ -1908,6 +1910,8 @@ SET(TEST_RPATH_COMMON_CONFIG_ARGS
   -DSimpleTpl_LIBRARY_DIRS=${SimpleTpl_install_shared_DIR}/install/lib
   )  
 
+
+# Test default TriBITS RPATH setting
 
 SET(RPATH_CURRENT_TEST_DIR
   ${CMAKE_CURRENT_BINARY_DIR}/${PACKAGE_NAME}_TribitsExampleProject_SimpleTpl_RPATH_default)
@@ -1926,6 +1930,7 @@ TRIBITS_ADD_ADVANCED_TEST( TribitsExampleProject_SimpleTpl_RPATH_default
       "Processing enabled package: SimpleCxx .Libs, Tests, Examples."
       "Configuring done"
       "Generating done"
+  # Above tests the standard install lib location
 
   TEST_1 CMND make ARGS ${CTEST_BUILD_FLAGS}
     MESSAGE "Build the default 'all' target using raw 'make'"
@@ -1967,6 +1972,8 @@ ENDIF()
 # is changing.
 
 
+# Test setting <project>_SET_INSTALL_RPATH=FALSE
+
 SET(RPATH_CURRENT_TEST_DIR
   ${CMAKE_CURRENT_BINARY_DIR}/${PACKAGE_NAME}_TribitsExampleProject_SimpleTpl_RPATH_no_SET_INSTALL_RPATH)
 
@@ -1978,17 +1985,17 @@ TRIBITS_ADD_ADVANCED_TEST( TribitsExampleProject_SimpleTpl_RPATH_no_SET_INSTALL_
     MESSAGE "Do configure with -DTribitsExProj_SET_INSTALL_RPATH=OFF"
     ARGS
       ${TEST_RPATH_COMMON_CONFIG_ARGS}
-      -DTribitsExProj_SET_INSTALL_RPATH=OFF
       -DCMAKE_INSTALL_PREFIX=${RPATH_CURRENT_TEST_DIR}/install
+      -DTribitsExProj_SET_INSTALL_RPATH=OFF
       ${${PROJECT_NAME}_TRIBITS_DIR}/examples/TribitsExampleProject
 
   TEST_1 CMND make ARGS ${CTEST_BUILD_FLAGS} install
+    MESSAGE "Install and grep to check for expected RPATH"
     PASS_REGULAR_EXPRESSION_ALL
       "-- Set runtime path of .${RPATH_CURRENT_TEST_DIR}/install/bin/simplecxx-helloworld. to .${SimpleTpl_install_shared_DIR}/install/lib."
-    # NOTE: This above regex is very exact.  It makes sure these two
-    # directories are there in exactly this order.
 
   TEST_2 CMND ${CMAKE_CTEST_COMMAND} ARGS -VV
+    MESSAGE "Run the executables from the build directory which shows that RPATH is set in build tree."
     PASS_REGULAR_EXPRESSION_ALL
       "100% tests passed, 0 tests failed out of 2"
 
@@ -2015,7 +2022,72 @@ IF (RPATH_CURRENT_TEST_NAME_NAME)
     PROPERTIES DEPENDS ${SimpleTpl_install_shared_NAME} )
 ENDIF()
 
-#ToDo: Add follow up test to make sure that you can set env and run the test
+
+# Test setting CMAKE_INSALL_RPATH="<path0>;<path1>;..."
+
+SET(RPATH_CURRENT_TEST_DIR
+  ${CMAKE_CURRENT_BINARY_DIR}/${PACKAGE_NAME}_TribitsExampleProject_SimpleTpl_RPATH_CMAKE_INSTALL_RPATH)
+
+TRIBITS_ADD_ADVANCED_TEST( TribitsExampleProject_SimpleTpl_RPATH_CMAKE_INSTALL_RPATH
+  OVERALL_WORKING_DIRECTORY TEST_NAME
+  OVERALL_NUM_MPI_PROCS 1
+
+  TEST_0 CMND ${CMAKE_COMMAND}
+    MESSAGE "Do configure with CMAKE_INSTALL_RPATH set to moved install dir install2/"
+    ARGS
+      ${TEST_RPATH_COMMON_CONFIG_ARGS}
+      -DCMAKE_INSTALL_PREFIX=${RPATH_CURRENT_TEST_DIR}/install
+      -DTribitsExProj_INSTALL_LIB_DIR=nonstd_lib_location
+      -DCMAKE_INSTALL_RPATH_USE_LINK_PATH=FALSE
+      -DCMAKE_INSTALL_RPATH="${RPATH_CURRENT_TEST_DIR}/install2/nonstd_lib_location:${SimpleTpl_install_shared_DIR}/install/lib"
+      ${${PROJECT_NAME}_TRIBITS_DIR}/examples/TribitsExampleProject
+  # Above tests with a non-standard lib location to see that TriBITS has the
+  # right logic in this case.  
+
+  TEST_1 CMND make ARGS ${CTEST_BUILD_FLAGS} install
+    PASS_REGULAR_EXPRESSION_ALL
+      "-- Set runtime path of .${RPATH_CURRENT_TEST_DIR}/install/bin/simplecxx-helloworld. to .${RPATH_CURRENT_TEST_DIR}/install2/nonstd_lib_location:${SimpleTpl_install_shared_DIR}/install/lib."
+
+  TEST_2 CMND ${CMAKE_CTEST_COMMAND} ARGS -VV
+    MESSAGE "Run the executables from the build directory which shows that RPATH is set in build tree."
+    PASS_REGULAR_EXPRESSION_ALL
+      "100% tests passed, 0 tests failed out of 2"
+#  TEST_3
+#    MESSAGE "Run installed executable which should fail"
+#    CMND ${RPATH_CURRENT_TEST_DIR}/install/bin/simplecxx-helloworld
+#    WILL_FAIL
+
+# NOTE: 2016/10/22: The above executable should fail to run but somehow it
+# magically runs on my Linux machine crf450.  I checked the RPATH with
+#
+#   'objdump -x <dir>/simplecxx-helloworld | grep RPATH
+#
+# and it shows the paths only for install2/lib and the TPL path.  I can't
+# understand how this even runs?  There must be some magic behavior on this
+# system for finding this shared lib.
+
+  TEST_3
+    MESSAGE "Copy from install/ to install2/ which should match CMAKE_INSTALL_RPATH"
+    CMND cp
+    ARGS -r install/ install2/
+
+  TEST_4
+    MESSAGE "Run from the moved install2/ dir which should pass"
+    CMND ${RPATH_CURRENT_TEST_DIR}/install2/bin/simplecxx-helloworld
+    PASS_REGULAR_EXPRESSION_ALL
+      "Hello World"
+      "Cube.3. = 27"  # This comes from the SimpleTpl TPL
+
+  ADDED_TEST_NAME_OUT RPATH_CURRENT_TEST_NAME_NAME
+  )
+IF (RPATH_CURRENT_TEST_NAME_NAME)
+  SET_TESTS_PROPERTIES(${TribitsExampleProject_SimpleTpl_RPATH_CMAKE_INSTALL_RPATH_NAME}
+    PROPERTIES DEPENDS ${SimpleTpl_install_shared_NAME} )
+ENDIF()
+
+
+
+# ToDo: Test -DCMAKE_SKIP_INSTALL_RPATH=TRUE ...
 
 
 
