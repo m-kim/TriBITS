@@ -1889,7 +1889,7 @@ TRIBITS_ADD_ADVANCED_TEST( SimpleTpl_install_shared
     ARGS ${CTEST_BUILD_FLAGS} install
     PASS_REGULAR_EXPRESSION_ALL
       "Built target simpletpl"
-      "Installing: ${SimpleTpl_install_shared_DIR}/install/lib/libsimpletpl.so"
+      "Installing: ${SimpleTpl_install_shared_DIR}/install/lib/libsimpletpl[.]"
       "Installing: ${SimpleTpl_install_shared_DIR}/install/include/SimpleTpl.hpp"
 
     ADDED_TEST_NAME_OUT SimpleTpl_install_shared_NAME
