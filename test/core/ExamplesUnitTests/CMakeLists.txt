@@ -1988,14 +1988,14 @@ TRIBITS_ADD_ADVANCED_TEST( TribitsExampleProject_SimpleTpl_RPATH_no_SET_INSTALL_
     MESSAGE "Do configure with -DTribitsExProj_SET_INSTALL_RPATH=OFF"
     ARGS
       ${TEST_RPATH_COMMON_CONFIG_ARGS}
-      -DCMAKE_INSTALL_PREFIX=${RPATH_CURRENT_TEST_DIR}/install
+      -DCMAKE_INSTALL_PREFIX=${RPATH_CURRENT_TEST_DIR}/install2
       -DTribitsExProj_SET_INSTALL_RPATH=OFF
       ${${PROJECT_NAME}_TRIBITS_DIR}/examples/TribitsExampleProject
 
   TEST_1 CMND make ARGS ${CTEST_BUILD_FLAGS} install
     MESSAGE "Install and grep to check for expected RPATH"
     PASS_REGULAR_EXPRESSION_ALL
-      "-- Set runtime path of .${RPATH_CURRENT_TEST_DIR}/install/bin/simplecxx-helloworld. to .${SimpleTpl_install_shared_DIR}/install/lib."
+      "-- Set runtime path of .${RPATH_CURRENT_TEST_DIR}/install2/bin/simplecxx-helloworld. to .${SimpleTpl_install_shared_DIR}/install/lib."
 
   TEST_2 CMND ${CMAKE_CTEST_COMMAND} ARGS -VV
     MESSAGE "Run the executables from the build directory which shows that RPATH is set in build tree."
@@ -2018,10 +2018,10 @@ ENDIF()
 # Run the exectuable built and installed above setting LD_LIBRARY_PATH
 TRIBITS_ADD_TEST(
   simplecxx-helloworld  NOEXEPREFIX  NOEXESUFFIX
-    DIRECTORY ${RPATH_CURRENT_TEST_DIR}/install/bin
+    DIRECTORY ${RPATH_CURRENT_TEST_DIR}/install2/bin
   NAME TribitsExampleProject_SimpleTpl_RPATH_no_SET_INSTALL_RPATH_run
   ENVIRONMENT
-    LD_LIBRARY_PATH=${RPATH_CURRENT_TEST_DIR}/install/lib:${LD_LIBRARY_PATH_ORIG}
+    LD_LIBRARY_PATH=${RPATH_CURRENT_TEST_DIR}/install2/lib:${LD_LIBRARY_PATH_ORIG}
   ADDED_TESTS_NAMES_OUT TribitsExampleProject_SimpleTpl_RPATH_no_SET_INSTALL_RPATH_run_NAMES
   )
 IF (TribitsExampleProject_SimpleTpl_RPATH_no_SET_INSTALL_RPATH_run_NAMES)
@@ -2083,9 +2083,61 @@ IF (RPATH_CURRENT_TEST_NAME_NAME)
 ENDIF()
 
 
+# Test setting -DCMAKE_SKIP_INSTALL_RPATH=TRUE
 
-# ToDo: Test -DCMAKE_SKIP_INSTALL_RPATH=TRUE ...
+SET(RPATH_CURRENT_TEST_DIR
+  ${CMAKE_CURRENT_BINARY_DIR}/${PACKAGE_NAME}_TribitsExampleProject_SimpleTpl_RPATH_CMAKE_SKIP_INSTALL_RPATH)
 
+TRIBITS_ADD_ADVANCED_TEST( TribitsExampleProject_SimpleTpl_RPATH_CMAKE_SKIP_INSTALL_RPATH
+  OVERALL_WORKING_DIRECTORY TEST_NAME
+  OVERALL_NUM_MPI_PROCS 1
+
+  TEST_0 CMND ${CMAKE_COMMAND}
+    MESSAGE "Do configure with -DTribitsExProj_SET_INSTALL_RPATH=OFF"
+    ARGS
+      ${TEST_RPATH_COMMON_CONFIG_ARGS}
+      -DCMAKE_INSTALL_PREFIX=${RPATH_CURRENT_TEST_DIR}/install3
+      -DCMAKE_SKIP_INSTALL_RPATH=TRUE
+      ${${PROJECT_NAME}_TRIBITS_DIR}/examples/TribitsExampleProject
+
+  TEST_1 CMND make ARGS ${CTEST_BUILD_FLAGS} install
+    MESSAGE "Install and grep to check for expected RPATH"
+    PASS_REGULAR_EXPRESSION_ALL
+      "-- Set runtime path of .${RPATH_CURRENT_TEST_DIR}/install3/bin/simplecxx-helloworld. to .."
+
+  TEST_2 CMND ${CMAKE_CTEST_COMMAND} ARGS -VV
+    MESSAGE "Run the executables from the build directory which shows that RPATH is set in build tree."
+    PASS_REGULAR_EXPRESSION_ALL
+      "100% tests passed, 0 tests failed out of 2"
+
+  TEST_3
+    MESSAGE "Run installed executable which should fail"
+    CMND ${RPATH_CURRENT_TEST_DIR}/install3/bin/simplecxx-helloworld
+    WILL_FAIL
+
+  ADDED_TEST_NAME_OUT RPATH_CURRENT_TEST_NAME_NAME
+  )
+IF (RPATH_CURRENT_TEST_NAME_NAME)
+  SET_TESTS_PROPERTIES(${RPATH_CURRENT_TEST_NAME_NAME}
+    PROPERTIES DEPENDS ${SimpleTpl_install_shared_NAME} )
+ENDIF()
+
+
+# Run the exectuable built and installed above setting LD_LIBRARY_PATH
+TRIBITS_ADD_TEST(
+  simplecxx-helloworld  NOEXEPREFIX  NOEXESUFFIX
+    DIRECTORY ${RPATH_CURRENT_TEST_DIR}/install3/bin
+  NAME TribitsExampleProject_SimpleTpl_RPATH_CMAKE_SKIP_INSTALL_RPATH_run
+  PASS_REGULAR_EXPRESSION
+    "Hello World"
+  ENVIRONMENT
+    LD_LIBRARY_PATH=${RPATH_CURRENT_TEST_DIR}/install3/lib:${SimpleTpl_install_shared_DIR}/install/lib:${LD_LIBRARY_PATH_ORIG}
+  ADDED_TESTS_NAMES_OUT TribitsExampleProject_SimpleTpl_RPATH_CMAKE_SKIP_INSTALL_RPATH_run_NAMES
+  )
+IF (TribitsExampleProject_SimpleTpl_RPATH_CMAKE_SKIP_INSTALL_RPATH_run_NAMES)
+  SET_TESTS_PROPERTIES(${TribitsExampleProject_SimpleTpl_RPATH_CMAKE_SKIP_INSTALL_RPATH_run_NAMES}
+    PROPERTIES DEPENDS ${RPATH_CURRENT_TEST_NAME_NAME} )
+ENDIF()
 
 
 ########################################################################
