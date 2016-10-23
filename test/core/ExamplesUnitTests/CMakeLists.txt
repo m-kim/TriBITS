@@ -2003,13 +2003,12 @@ TRIBITS_ADD_ADVANCED_TEST( TribitsExampleProject_SimpleTpl_RPATH_no_SET_INSTALL_
   TEST_3
     MESSAGE "Run installed executable which should fail"
     CMND ${RPATH_CURRENT_TEST_DIR}/install/bin/simplecxx-helloworld
-    PASS_REGULAR_EXPRESSION_ALL
-      "libsimplecxx"
+    WILL_FAIL
 
   ADDED_TEST_NAME_OUT RPATH_CURRENT_TEST_NAME_NAME
   )
 IF (RPATH_CURRENT_TEST_NAME_NAME)
-  SET_TESTS_PROPERTIES(${TribitsExampleProject_SimpleTpl_RPATH_no_SET_INSTALL_RPATH_NAME}
+  SET_TESTS_PROPERTIES(${RPATH_CURRENT_TEST_NAME_NAME}
     PROPERTIES DEPENDS ${SimpleTpl_install_shared_NAME} )
 ENDIF()
 
@@ -2043,25 +2042,16 @@ TRIBITS_ADD_ADVANCED_TEST( TribitsExampleProject_SimpleTpl_RPATH_CMAKE_INSTALL_R
     MESSAGE "Run the executables from the build directory which shows that RPATH is set in build tree."
     PASS_REGULAR_EXPRESSION_ALL
       "100% tests passed, 0 tests failed out of 2"
-#  TEST_3
-#    MESSAGE "Run installed executable which should fail"
-#    CMND ${RPATH_CURRENT_TEST_DIR}/install/bin/simplecxx-helloworld
-#    WILL_FAIL
-
-# NOTE: 2016/10/22: The above executable should fail to run but somehow it
-# magically runs on my Linux machine crf450.  I checked the RPATH with
-#
-#   'objdump -x <dir>/simplecxx-helloworld | grep RPATH
-#
-# and it shows the paths only for install2/lib and the TPL path.  I can't
-# understand how this even runs?  There must be some magic behavior on this
-# system for finding this shared lib.
-
   TEST_3
+    MESSAGE "Run installed executable which should fail"
+    CMND ${RPATH_CURRENT_TEST_DIR}/install/bin/simplecxx-helloworld
+    WILL_FAIL
+
+  TEST_4
     MESSAGE "Move from install/ to install2/ which should match CMAKE_INSTALL_RPATH"
     CMND mv ARGS install/ install2/
 
-  TEST_4
+  TEST_5
     MESSAGE "Run from the moved install2/ dir which should pass"
     CMND ${RPATH_CURRENT_TEST_DIR}/install2/bin/simplecxx-helloworld
     PASS_REGULAR_EXPRESSION_ALL
@@ -2071,7 +2061,7 @@ TRIBITS_ADD_ADVANCED_TEST( TribitsExampleProject_SimpleTpl_RPATH_CMAKE_INSTALL_R
   ADDED_TEST_NAME_OUT RPATH_CURRENT_TEST_NAME_NAME
   )
 IF (RPATH_CURRENT_TEST_NAME_NAME)
-  SET_TESTS_PROPERTIES(${TribitsExampleProject_SimpleTpl_RPATH_CMAKE_INSTALL_RPATH_NAME}
+  SET_TESTS_PROPERTIES(${RPATH_CURRENT_TEST_NAME_NAME}
     PROPERTIES DEPENDS ${SimpleTpl_install_shared_NAME} )
 ENDIF()
 
