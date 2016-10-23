@@ -752,25 +752,25 @@ MACRO(TRIBITS_SETUP_INSTALLATION_PATHS)
   ADVANCED_SET( ${PROJECT_NAME}_INSTALL_INCLUDE_DIR
     ${${PROJECT_NAME}_INSTALL_INCLUDE_DIR_DEFAULT}
     CACHE PATH
-    "Location where the headers will be installed.  If given as a relative path, it will be relative to ${CMAKE_INSTALL_PREFIX}.  If given as an absolute path, it will used as such.  Default is 'include'"
+    "Location where the headers will be installed.  If given as a STRING type and relative path, it will be relative to ${CMAKE_INSTALL_PREFIX}.  If given as an absolute path, it will used as such.  Default is 'include'"
     )
 
   ADVANCED_SET( ${PROJECT_NAME}_INSTALL_LIB_DIR
     ${${PROJECT_NAME}_INSTALL_LIB_DIR_DEFAULT}
     CACHE PATH
-    "Location where the libraries will be installed.  If given as a relative path, it will be relative to ${CMAKE_INSTALL_PREFIX}.  If given as an absolute path, it will used as such.  Default is 'lib'"
+    "Location where the libraries will be installed.  If given as a STRING type relative path, it will be relative to ${CMAKE_INSTALL_PREFIX}.  If given as an absolute path, it will used as such.  Default is 'lib'"
     )
 
   ADVANCED_SET( ${PROJECT_NAME}_INSTALL_RUNTIME_DIR
     ${${PROJECT_NAME}_INSTALL_RUNTIME_DIR_DEFAULT}
     CACHE PATH
-    "Location where the runtime DLLs and designated programs will be installed.  If given as a relative path, it will be relative to ${CMAKE_INSTALL_PREFIX}.  If given as an absolute path, it will used as such.  Default is 'bin'"
+    "Location where the runtime DLLs and designated programs will be installed.  If given as a STRING type relative path, it will be relative to ${CMAKE_INSTALL_PREFIX}.  If given as an absolute path, it will used as such.  Default is 'bin'"
     )
 
   ADVANCED_SET(${PROJECT_NAME}_INSTALL_EXAMPLE_DIR
     ${${PROJECT_NAME}_INSTALL_EXAMPLE_DIR_DEFAULT}
     CACHE PATH
-    "Location where assorted examples will be installed.  If given as a relative path, it will be relative to ${CMAKE_INSTALL_PREFIX}.  If given as an absolute path, it will used as such.  Default is 'example'"
+    "Location where assorted examples will be installed.  If given as a STRING type relative path, it will be relative to ${CMAKE_INSTALL_PREFIX}.  If given as an absolute path, it will used as such.  Default is 'example'"
     )
 
   #

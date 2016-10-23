@@ -1901,6 +1901,7 @@ TRIBITS_ADD_ADVANCED_TEST( SimpleTpl_install_shared
 # TribitsExampleProject_SimpleTpl_RPATH_XXX tests.
 SET(TEST_RPATH_COMMON_CONFIG_ARGS
   ${TribitsExampleProject_COMMON_CONFIG_ARGS}
+  -DBUILD_SHARED_LIBS=ON
   -DTribitsExProj_TRIBITS_DIR=${${PROJECT_NAME}_TRIBITS_DIR}
   -DTribitsExProj_ENABLE_Fortran=OFF
   -DTribitsExProj_ENABLE_SimpleCxx=ON
@@ -1999,21 +2000,11 @@ TRIBITS_ADD_ADVANCED_TEST( TribitsExampleProject_SimpleTpl_RPATH_no_SET_INSTALL_
     PASS_REGULAR_EXPRESSION_ALL
       "100% tests passed, 0 tests failed out of 2"
 
-#  TEST_3
-#    MESSAGE "Run installed executable which should fail"
-#    CMND ${RPATH_CURRENT_TEST_DIR}/install/bin/simplecxx-helloworld
-#    WILL_FAIL   # NOTE: This argument is not supported yet!
-
-   # NOTE: By some magic on my machine crf450, the linker or CMake (can't tell
-   # which) is putting in the directory for the shared lib libsimplecxx.so
-   # into the RPATH automatically even through CMake install output shows that
-   # it is only setting the RPATH to libsimpltpl.so.   When I ran:
-   # 
-   #    objdump -x <path>/install/bin/simplecxx-helloworld
-   #
-   # it shows the paths to both libsimplecxx.so and the libsimpletpl.so.  How
-   # is that possible? That might explain why RPATH seems to work magically on
-   # most Linux machines.
+  TEST_3
+    MESSAGE "Run installed executable which should fail"
+    CMND ${RPATH_CURRENT_TEST_DIR}/install/bin/simplecxx-helloworld
+    PASS_REGULAR_EXPRESSION_ALL
+      "libsimplecxx"
 
   ADDED_TEST_NAME_OUT RPATH_CURRENT_TEST_NAME_NAME
   )
@@ -2037,7 +2028,7 @@ TRIBITS_ADD_ADVANCED_TEST( TribitsExampleProject_SimpleTpl_RPATH_CMAKE_INSTALL_R
     ARGS
       ${TEST_RPATH_COMMON_CONFIG_ARGS}
       -DCMAKE_INSTALL_PREFIX=${RPATH_CURRENT_TEST_DIR}/install
-      -DTribitsExProj_INSTALL_LIB_DIR=nonstd_lib_location
+      -DTribitsExProj_INSTALL_LIB_DIR:STRING=nonstd_lib_location
       -DCMAKE_INSTALL_RPATH_USE_LINK_PATH=FALSE
       -DCMAKE_INSTALL_RPATH="${RPATH_CURRENT_TEST_DIR}/install2/nonstd_lib_location:${SimpleTpl_install_shared_DIR}/install/lib"
       ${${PROJECT_NAME}_TRIBITS_DIR}/examples/TribitsExampleProject
@@ -2067,9 +2058,8 @@ TRIBITS_ADD_ADVANCED_TEST( TribitsExampleProject_SimpleTpl_RPATH_CMAKE_INSTALL_R
 # system for finding this shared lib.
 
   TEST_3
-    MESSAGE "Copy from install/ to install2/ which should match CMAKE_INSTALL_RPATH"
-    CMND cp
-    ARGS -r install/ install2/
+    MESSAGE "Move from install/ to install2/ which should match CMAKE_INSTALL_RPATH"
+    CMND mv ARGS install/ install2/
 
   TEST_4
     MESSAGE "Run from the moved install2/ dir which should pass"
