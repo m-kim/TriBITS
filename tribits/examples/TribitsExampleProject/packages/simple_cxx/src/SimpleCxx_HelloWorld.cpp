@@ -14,6 +14,8 @@ std::string SimpleCxx::deps()
 
 namespace SimpleCxx {
 
+HelloWorld::HelloWorld()
+{}
 
 void HelloWorld::printHelloWorld(std::ostream &out) const
 {
