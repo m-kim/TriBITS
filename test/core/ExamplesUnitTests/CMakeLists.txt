@@ -2173,7 +2173,7 @@ SET(RPATH_CURRENT_TEST_DIR
 IF (CMAKE_HOST_SYSTEM_NAME STREQUAL "Darwin")
   SET(RPATH_GREP_STR "@rpath/libsimplecxx[.].*[.]dylib;@rpath/libsimpletpl[.]dylib")
 ELSEIF (CMAKE_HOST_SYSTEM_NAME STREQUAL "Linux")
-  SET(RPATH_GREP_STR "RPATH *")
+  SET(RPATH_GREP_STR "") # Can't look for RPATH at all
 ENDIF()
 
 TRIBITS_ADD_ADVANCED_TEST( TribitsExampleProject_SimpleTpl_RPATH_CMAKE_SKIP_INSTALL_RPATH
