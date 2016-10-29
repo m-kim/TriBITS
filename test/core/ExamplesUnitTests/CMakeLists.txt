@@ -45,8 +45,12 @@
 SET(SERIAL_PASSTHROUGH_CONFIGURE_ARGS
   -DCMAKE_C_COMPILER=${CMAKE_C_COMPILER}
   -DCMAKE_CXX_COMPILER=${CMAKE_CXX_COMPILER}
-  -DCMAKE_Fortran_COMPILER=${CMAKE_Fortran_COMPILER}
   )
+
+IF ({${PROJECT_NAME}_ENABLE_Fortran)
+  APPEND_SET(SERIAL_PASSTHROUGH_CONFIGURE_ARGS
+    -DCMAKE_Fortran_COMPILER=${CMAKE_Fortran_COMPILER} )
+ENDIF()
 
 SET(COMMON_ENV_ARGS_PASSTHROUGH
   -DTPL_ENABLE_MPI=${TPL_ENABLE_MPI}
@@ -1863,13 +1867,35 @@ TRIBITS_ADD_ADVANCED_TEST( TribitsExampleProject_DisableWithSubpackagesB_EnableW
 # parent package is re-enabled if any of its subpackages are enabled!
 
 
-#
+##################################
 # RPATH handling
+##################################
+
+
+IF (CMAKE_HOST_SYSTEM_NAME STREQUAL "Darwin")
+  SET(SHARED_LIB_EXT "dylib")
+  SET(RPATH_INSPECT_CMND "otool")
+  SET(RPATH_INSPECT_ARG "-L")
+ELSEIF (CMAKE_HOST_SYSTEM_NAME STREQUAL "Linux")
+  SET(SHARED_LIB_EXT "so")
+  SET(RPATH_INSPECT_CMND "DUMMY")
+  SET(RPATH_INSPECT_ARG "DUMMY")
+ENDIF()
+
+
+#
+# SimpleTpl_install_shared
 #
 
+IF (CMAKE_HOST_SYSTEM_NAME STREQUAL "Darwin")
+  SET(RPATH_GREP_STR "@rpath/libsimpletpl.dylib")
+ELSEIF (CMAKE_HOST_SYSTEM_NAME STREQUAL "Linux")
+  SET(RPATH_GREP_STR "DUMMY NO MATCH")
+ENDIF()
 
 SET(SimpleTpl_install_shared_DIR
   ${CMAKE_CURRENT_BINARY_DIR}/${PACKAGE_NAME}_SimpleTpl_install_shared)
+
 TRIBITS_ADD_ADVANCED_TEST( SimpleTpl_install_shared
   OVERALL_WORKING_DIRECTORY TEST_NAME
   OVERALL_NUM_MPI_PROCS 1
@@ -1879,6 +1905,8 @@ TRIBITS_ADD_ADVANCED_TEST( SimpleTpl_install_shared
     ARGS
       ${SERIAL_PASSTHROUGH_CONFIGURE_ARGS}
       -DBUILD_SHARED_LIBS=ON
+      -DCMAKE_INSTALL_RPATH_USE_LINK_PATH=TRUE
+      -DCMAKE_MACOSX_RPATH=TRUE
       -DCMAKE_INSTALL_PREFIX=${SimpleTpl_install_shared_DIR}/install
       ${${PROJECT_NAME}_TRIBITS_DIR}/examples/tpls/SimpleTpl
     PASS_REGULAR_EXPRESSION_ALL
@@ -1892,13 +1920,21 @@ TRIBITS_ADD_ADVANCED_TEST( SimpleTpl_install_shared
       "Installing: ${SimpleTpl_install_shared_DIR}/install/lib/libsimpletpl[.]"
       "Installing: ${SimpleTpl_install_shared_DIR}/install/include/SimpleTpl.hpp"
 
+  TEST_2 CMND ${RPATH_INSPECT_CMND}
+    ARGS ${RPATH_INSPECT_ARG}  install/lib/libsimpletpl.${SHARED_LIB_EXT}
+    PASS_REGULAR_EXPRESSION  "${RPATH_GREP_STR}"
+    ALWAYS_FAIL_ON_NONZERO_RETURN
+
     ADDED_TEST_NAME_OUT SimpleTpl_install_shared_NAME
 
   )
 
 
-# Common configure arugments for all fo the
+#
+# Common configure arugments for all for the
 # TribitsExampleProject_SimpleTpl_RPATH_XXX tests.
+#
+
 SET(TEST_RPATH_COMMON_CONFIG_ARGS
   ${TribitsExampleProject_COMMON_CONFIG_ARGS}
   -DBUILD_SHARED_LIBS=ON
@@ -1911,13 +1947,21 @@ SET(TEST_RPATH_COMMON_CONFIG_ARGS
   -DSimpleTpl_LIBRARY_DIRS=${SimpleTpl_install_shared_DIR}/install/lib
   )  
 
-
 SET(LD_LIBRARY_PATH_ORIG $ENV{LD_LIBRARY_PATH})
 
+
+#
 # Test default TriBITS RPATH setting
+#
 
 SET(RPATH_CURRENT_TEST_DIR
   ${CMAKE_CURRENT_BINARY_DIR}/${PACKAGE_NAME}_TribitsExampleProject_SimpleTpl_RPATH_default)
+
+IF (CMAKE_HOST_SYSTEM_NAME STREQUAL "Darwin")
+  SET(RPATH_GREP_STR "@rpath/libsimplecxx[.].*[.]dylib;@rpath/libsimpletpl[.]dylib")
+ELSEIF (CMAKE_HOST_SYSTEM_NAME STREQUAL "Linux")
+  SET(RPATH_GREP_STR "DUMMY NO MATCH")
+ENDIF()
 
 TRIBITS_ADD_ADVANCED_TEST( TribitsExampleProject_SimpleTpl_RPATH_default
   OVERALL_WORKING_DIRECTORY TEST_NAME
@@ -1951,11 +1995,15 @@ TRIBITS_ADD_ADVANCED_TEST( TribitsExampleProject_SimpleTpl_RPATH_default
 
   TEST_3 CMND make ARGS ${CTEST_BUILD_FLAGS} install
     PASS_REGULAR_EXPRESSION_ALL
-      "-- Set runtime path of .${RPATH_CURRENT_TEST_DIR}/install/bin/simplecxx-helloworld. to .${RPATH_CURRENT_TEST_DIR}/install/lib:${SimpleTpl_install_shared_DIR}/install/lib."
-    # NOTE: This above regex is very exact.  It makes sure these two
-    # directories are there in exactly this order.
+      "-- Installing: .*/install/bin/simplecxx-helloworld"
+      "-- Installing: .*/install/lib/libsimplecxx[.].*${SHARED_LIB_EXT}"
 
-  TEST_4
+  TEST_4 CMND ${RPATH_INSPECT_CMND}
+    ARGS  ${RPATH_INSPECT_ARG}  install/lib/libsimplecxx.${SHARED_LIB_EXT}
+    PASS_REGULAR_EXPRESSION_ALL  "${RPATH_GREP_STR}"
+    ALWAYS_FAIL_ON_NONZERO_RETURN
+
+  TEST_5
     MESSAGE "Run installed executable without having to set env"
     CMND ${RPATH_CURRENT_TEST_DIR}/install/bin/simplecxx-helloworld
     PASS_REGULAR_EXPRESSION_ALL
@@ -1975,10 +2023,18 @@ ENDIF()
 # is changing.
 
 
+#
 # Test setting <project>_SET_INSTALL_RPATH=FALSE
+#
 
 SET(RPATH_CURRENT_TEST_DIR
   ${CMAKE_CURRENT_BINARY_DIR}/${PACKAGE_NAME}_TribitsExampleProject_SimpleTpl_RPATH_no_SET_INSTALL_RPATH)
+
+IF (CMAKE_HOST_SYSTEM_NAME STREQUAL "Darwin")
+  SET(RPATH_GREP_STR "@rpath/libsimplecxx[.].*[.]dylib;@rpath/libsimpletpl[.]dylib")
+ELSEIF (CMAKE_HOST_SYSTEM_NAME STREQUAL "Linux")
+  SET(RPATH_GREP_STR "DUMMY NO MATCH")
+ENDIF()
 
 TRIBITS_ADD_ADVANCED_TEST( TribitsExampleProject_SimpleTpl_RPATH_no_SET_INSTALL_RPATH
   OVERALL_WORKING_DIRECTORY TEST_NAME
@@ -1993,16 +2049,18 @@ TRIBITS_ADD_ADVANCED_TEST( TribitsExampleProject_SimpleTpl_RPATH_no_SET_INSTALL_
       ${${PROJECT_NAME}_TRIBITS_DIR}/examples/TribitsExampleProject
 
   TEST_1 CMND make ARGS ${CTEST_BUILD_FLAGS} install
-    MESSAGE "Install and grep to check for expected RPATH"
-    PASS_REGULAR_EXPRESSION_ALL
-      "-- Set runtime path of .${RPATH_CURRENT_TEST_DIR}/install2/bin/simplecxx-helloworld. to .${SimpleTpl_install_shared_DIR}/install/lib."
 
-  TEST_2 CMND ${CMAKE_CTEST_COMMAND} ARGS -VV
+  TEST_2 CMND ${RPATH_INSPECT_CMND}
+    ARGS  ${RPATH_INSPECT_ARG}  install2/lib/libsimplecxx.${SHARED_LIB_EXT}
+    PASS_REGULAR_EXPRESSION_ALL  "${RPATH_GREP_STR}"
+    ALWAYS_FAIL_ON_NONZERO_RETURN
+
+  TEST_3 CMND ${CMAKE_CTEST_COMMAND} ARGS -VV
     MESSAGE "Run the executables from the build directory which shows that RPATH is set in build tree."
     PASS_REGULAR_EXPRESSION_ALL
       "100% tests passed, 0 tests failed out of 2"
 
-  TEST_3
+  TEST_4
     MESSAGE "Run installed executable which should fail"
     CMND ${RPATH_CURRENT_TEST_DIR}/install/bin/simplecxx-helloworld
     WILL_FAIL
@@ -2030,10 +2088,18 @@ IF (TribitsExampleProject_SimpleTpl_RPATH_no_SET_INSTALL_RPATH_run_NAMES)
 ENDIF()
 
 
+#
 # Test setting CMAKE_INSALL_RPATH="<path0>;<path1>;..."
+#
 
 SET(RPATH_CURRENT_TEST_DIR
   ${CMAKE_CURRENT_BINARY_DIR}/${PACKAGE_NAME}_TribitsExampleProject_SimpleTpl_RPATH_CMAKE_INSTALL_RPATH)
+
+IF (CMAKE_HOST_SYSTEM_NAME STREQUAL "Darwin")
+  SET(RPATH_GREP_STR "@rpath/libsimplecxx[.].*[.]dylib;@rpath/libsimpletpl[.]dylib")
+ELSEIF (CMAKE_HOST_SYSTEM_NAME STREQUAL "Linux")
+  SET(RPATH_GREP_STR "DUMMY NO MATCH")
+ENDIF()
 
 TRIBITS_ADD_ADVANCED_TEST( TribitsExampleProject_SimpleTpl_RPATH_CMAKE_INSTALL_RPATH
   OVERALL_WORKING_DIRECTORY TEST_NAME
@@ -2049,26 +2115,33 @@ TRIBITS_ADD_ADVANCED_TEST( TribitsExampleProject_SimpleTpl_RPATH_CMAKE_INSTALL_R
       -DCMAKE_INSTALL_RPATH="${RPATH_CURRENT_TEST_DIR}/install2/nonstd_lib_location:${SimpleTpl_install_shared_DIR}/install/lib"
       ${${PROJECT_NAME}_TRIBITS_DIR}/examples/TribitsExampleProject
   # Above tests with a non-standard lib location to see that TriBITS has the
-  # right logic in this case.  
+  # right logic in this case.
 
   TEST_1 CMND make ARGS ${CTEST_BUILD_FLAGS} install
     PASS_REGULAR_EXPRESSION_ALL
-      "-- Set runtime path of .${RPATH_CURRENT_TEST_DIR}/install/bin/simplecxx-helloworld. to .${RPATH_CURRENT_TEST_DIR}/install2/nonstd_lib_location:${SimpleTpl_install_shared_DIR}/install/lib."
+      "-- Installing: .*/install/bin/simplecxx-helloworld"
+      "-- Installing: .*/install/nonstd_lib_location/libsimplecxx[.].*${SHARED_LIB_EXT}"
 
-  TEST_2 CMND ${CMAKE_CTEST_COMMAND} ARGS -VV
+  TEST_2 CMND ${RPATH_INSPECT_CMND}
+    ARGS  ${RPATH_INSPECT_ARG}  install/nonstd_lib_location/libsimplecxx.${SHARED_LIB_EXT}
+    PASS_REGULAR_EXPRESSION_ALL  "${RPATH_GREP_STR}"
+    ALWAYS_FAIL_ON_NONZERO_RETURN
+
+  TEST_3 CMND ${CMAKE_CTEST_COMMAND} ARGS -VV
     MESSAGE "Run the executables from the build directory which shows that RPATH is set in build tree."
     PASS_REGULAR_EXPRESSION_ALL
       "100% tests passed, 0 tests failed out of 2"
-  TEST_3
+
+  TEST_4
     MESSAGE "Run installed executable which should fail"
     CMND ${RPATH_CURRENT_TEST_DIR}/install/bin/simplecxx-helloworld
     WILL_FAIL
 
-  TEST_4
+  TEST_5
     MESSAGE "Move from install/ to install2/ which should match CMAKE_INSTALL_RPATH"
     CMND mv ARGS install/ install2/
 
-  TEST_5
+  TEST_6
     MESSAGE "Run from the moved install2/ dir which should pass"
     CMND ${RPATH_CURRENT_TEST_DIR}/install2/bin/simplecxx-helloworld
     PASS_REGULAR_EXPRESSION_ALL
@@ -2083,10 +2156,18 @@ IF (RPATH_CURRENT_TEST_NAME_NAME)
 ENDIF()
 
 
+#
 # Test setting -DCMAKE_SKIP_INSTALL_RPATH=TRUE
+#
 
 SET(RPATH_CURRENT_TEST_DIR
   ${CMAKE_CURRENT_BINARY_DIR}/${PACKAGE_NAME}_TribitsExampleProject_SimpleTpl_RPATH_CMAKE_SKIP_INSTALL_RPATH)
+
+IF (CMAKE_HOST_SYSTEM_NAME STREQUAL "Darwin")
+  SET(RPATH_GREP_STR "@rpath/libsimplecxx[.].*[.]dylib;@rpath/libsimpletpl[.]dylib")
+ELSEIF (CMAKE_HOST_SYSTEM_NAME STREQUAL "Linux")
+  SET(RPATH_GREP_STR "DUMMY NO MATCH")
+ENDIF()
 
 TRIBITS_ADD_ADVANCED_TEST( TribitsExampleProject_SimpleTpl_RPATH_CMAKE_SKIP_INSTALL_RPATH
   OVERALL_WORKING_DIRECTORY TEST_NAME
@@ -2103,14 +2184,20 @@ TRIBITS_ADD_ADVANCED_TEST( TribitsExampleProject_SimpleTpl_RPATH_CMAKE_SKIP_INST
   TEST_1 CMND make ARGS ${CTEST_BUILD_FLAGS} install
     MESSAGE "Install and grep to check for expected RPATH"
     PASS_REGULAR_EXPRESSION_ALL
-      "-- Set runtime path of .${RPATH_CURRENT_TEST_DIR}/install3/bin/simplecxx-helloworld. to .."
+      "-- Installing: .*/install3/bin/simplecxx-helloworld"
+      "-- Installing: .*/install3/lib/libsimplecxx[.].*${SHARED_LIB_EXT}"
 
-  TEST_2 CMND ${CMAKE_CTEST_COMMAND} ARGS -VV
+  TEST_2 CMND ${RPATH_INSPECT_CMND}
+    ARGS  ${RPATH_INSPECT_ARG}  install3/lib/libsimplecxx.${SHARED_LIB_EXT}
+    PASS_REGULAR_EXPRESSION_ALL  "${RPATH_GREP_STR}"
+    ALWAYS_FAIL_ON_NONZERO_RETURN
+
+  TEST_3 CMND ${CMAKE_CTEST_COMMAND} ARGS -VV
     MESSAGE "Run the executables from the build directory which shows that RPATH is set in build tree."
     PASS_REGULAR_EXPRESSION_ALL
       "100% tests passed, 0 tests failed out of 2"
 
-  TEST_3
+  TEST_4
     MESSAGE "Run installed executable which should fail"
     CMND ${RPATH_CURRENT_TEST_DIR}/install3/bin/simplecxx-helloworld
     WILL_FAIL
