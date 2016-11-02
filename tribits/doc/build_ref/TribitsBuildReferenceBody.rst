@@ -2293,7 +2293,7 @@ If these paths are relative (i.e. don't start with "/" and use type
 ``STRING``) then they are relative to ``${CMAKE_INSTALL_PREFIX}``.  Otherwise
 the paths can be absolute (use type ``PATH``) and don't have to be under
 ``${CMAKE_INSTALL_PREFIX}``.  For example, to install each part in any
-abritrary location use::
+arbitrary location use::
 
   -D <Project>_INSTALL_INCLUDE_DIR="/usr/<Project>_include" \
   -D <Project>_INSTALL_LIB_DIR="/usr/<Project>_lib" \
@@ -2448,7 +2448,7 @@ These scenarios in detail are:
    Once the install directories are moved to the final location, the
    exectuables can be run without any need to set environment variables.
 
-   Note that TriBITS also accepts the directory seprator "``:``" for::
+   Note that TriBITS also accepts the directory separator "``:``" for::
 
      -DCMAKE_INSTALL_RPATH="<path0>:<path1>:..." \
 
