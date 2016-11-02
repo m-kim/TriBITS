@@ -2494,6 +2494,26 @@ These scenarios in detail are:
 
    This will produce the least confusing configure output.
 
+One additional issue about RPATH handling on Mac OSX systems needs to be
+mentioned. That is, in order for this default RPATH approach to work on OSX
+systems, all of the upstream shared libraries must have
+``@rpath/lib<libname>.dylib`` embedded into them (as shown by the ``otool -L
+<libpath>`` tool).  For libraries built and installed with CMake, the parent
+CMake project must be configured with::
+
+  -DBUILD_SHARED_LIBS=ON \
+  -DCMAKE_INSTALL_RPATH_USE_LINK_PATH=TRUE \
+  -DCMAKE_MACOSX_RPATH=TRUE \
+
+For other build systems on the OSX system, see their documentation for shared
+library support on OSX.  To see the proper way to handle RPATH on OSX, just
+inspect the build and install commands that CMake generates (e.g. using ``make
+VERBOSE=1 <target>``) for shared libraries then make sure that these other
+build systems use equivalent commands.  If that is done properly for the chain
+of all upstream shared libraries then the behaviors of this <Project> CMake
+project described above should hold.
+
+
 Avoiding installing libraries and headers
 -----------------------------------------
 
