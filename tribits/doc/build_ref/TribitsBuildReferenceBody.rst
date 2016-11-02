@@ -2448,6 +2448,17 @@ These scenarios in detail are:
    Once the install directories are moved to the final location, the
    exectuables can be run without any need to set environment variables.
 
+   Note that TriBITS also accepts the directory seprator "``:``" for::
+
+     -DCMAKE_INSTALL_RPATH="<path0>:<path1>:..." \
+
+   and replaces it internally with "``;``" which raw CMake requires. (This
+   makes it more robust to pass around inside of CMake code since "``;``"
+   means array boundary with CMake.).  However, since ":" is not a valid
+   character for a path for any Unix system, this is a safe substitution (and
+   ``CMAKE_INSTALL_RPATH`` is not used on Windows systems that allow "``:``"
+   in a directory path).
+
    Also note that Linux supports RPATHs with the special value ``$ORIGIN`` to
    allow for relative paths and for relocatable installations.  (Mac OSX has
    similar variables like ``@executable_path``.)  With this, one can define

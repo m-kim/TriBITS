@@ -2096,7 +2096,7 @@ ENDIF()
 
 
 #
-# Test setting CMAKE_INSALL_RPATH="<path0>;<path1>;..."
+# Test setting CMAKE_INSTALL_RPATH="<path0>:<path1>:..."
 #
 
 SET(RPATH_CURRENT_TEST_DIR
